@@ -1,0 +1,741 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Head Race Tracker</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 10px auto;
+            padding: 5px;
+            text-align: center;
+            transition: background-color 0.3s;
+        }
+        body.finish-mode {
+            background-color: #e3f2fd;
+        }
+        .settings-link {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            color: #2196F3;
+            text-decoration: none;
+            font-size: 14px;
+            cursor: pointer;
+        }
+        .settings-link:hover {
+            text-decoration: underline;
+        }
+        .history-link {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            color: #2196F3;
+            text-decoration: none;
+            font-size: 14px;
+            cursor: pointer;
+        }
+        .history-link:hover {
+            text-decoration: underline;
+        }
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+        }
+        .modal-content {
+            background-color: white;
+            margin: 100px auto;
+            padding: 30px;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 400px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .modal-content h2 {
+            margin-top: 0;
+            font-size: 20px;
+        }
+        .history-content {
+            max-height: 400px;
+            overflow-y: auto;
+            margin: 20px 0;
+        }
+        .history-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        .history-item {
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+            text-align: left;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .history-item:hover {
+            background-color: #f9f9f9;
+        }
+        .history-item input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+        .history-item-text {
+            flex: 1;
+        }
+        .history-empty {
+            text-align: center;
+            color: #999;
+            padding: 20px;
+        }
+        .history-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-top: 15px;
+            flex-wrap: wrap;
+        }
+        .clear-history-btn {
+            background-color: #f44336;
+            color: white;
+            padding: 8px 20px;
+            font-size: 14px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .clear-history-btn:hover {
+            background-color: #da190b;
+        }
+        .delete-selected-btn {
+            background-color: #ff9800;
+            color: white;
+            padding: 8px 20px;
+            font-size: 14px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .delete-selected-btn:hover {
+            background-color: #f57c00;
+        }
+        .download-csv-btn {
+            background-color: #2196F3;
+            color: white;
+            padding: 8px 20px;
+            font-size: 14px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .download-csv-btn:hover {
+            background-color: #0b7dda;
+        }
+        .select-all-history {
+            margin-bottom: 10px;
+            text-align: left;
+            padding: 5px 10px;
+        }
+        .select-all-history input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+            margin-right: 8px;
+        }
+        .mode-selector {
+            margin: 20px 0;
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+        }
+        .mode-option {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+        }
+        .mode-option input[type="radio"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+        .mode-option label {
+            cursor: pointer;
+            font-size: 16px;
+        }
+        .modal-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-top: 25px;
+        }
+        .modal-buttons button {
+            padding: 10px 25px;
+            font-size: 14px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .btn-save-settings {
+            background-color: #4CAF50;
+            color: white;
+        }
+        .btn-save-settings:hover {
+            background-color: #45a049;
+        }
+        .btn-cancel-settings {
+            background-color: #999;
+            color: white;
+        }
+        .btn-cancel-settings:hover {
+            background-color: #777;
+        }
+        h1 {
+            color: #333;
+            margin: 5px 0;
+            font-size: 24px;
+        }
+        .button-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-top: 10px;
+        }
+        button {
+            padding: 19px;
+            font-size: 18px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        button:active {
+            background-color: #3d8b40;
+        }
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        button.recorded {
+            background-color: #ff9800;
+        }
+        button.recorded:hover {
+            background-color: #f57c00;
+        }
+        .status {
+            margin-top: 20px;
+            padding: 10px;
+            border-radius: 5px;
+            display: none;
+        }
+        .status.success {
+            background-color: #d4edda;
+            color: #155724;
+            display: block;
+        }
+        .status.error {
+            background-color: #f8d7da;
+            color: #721c24;
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <a class="history-link" onclick="openHistoryModal()">History</a>
+    <a class="settings-link" onclick="openSettingsModal()">Settings</a>
+    
+    <h1>Head Race Tracker</h1>
+    
+    <div id="confirmation" style="background-color: #d4edda; color: #155724; padding: 8px; border-radius: 4px; margin: 5px 0; font-size: 14px; font-weight: bold; min-height: 30px; display: flex; align-items: center; justify-content: center; visibility: hidden;"></div>
+    
+    <div id="clock" style="font-size: 42px; font-weight: bold; color: #333; margin: 10px 0;">00:00:00</div>
+    <p style="margin: 5px 0; font-size: 14px;">Press a button to record time</p>
+    
+    <div class="button-container" id="buttonContainer">
+        <p style="color: #999;">Loading names...</p>
+    </div>
+
+    <div id="status" class="status"></div>
+
+    <!-- Settings Modal -->
+    <div id="settingsModal" class="modal-overlay">
+        <div class="modal-content">
+            <h2>Settings</h2>
+            <p>Select recording mode:</p>
+            <div class="mode-selector">
+                <div class="mode-option">
+                    <input type="radio" id="startMode" name="mode" value="start" checked>
+                    <label for="startMode">Start</label>
+                </div>
+                <div class="mode-option">
+                    <input type="radio" id="finishMode" name="mode" value="finish">
+                    <label for="finishMode">Finish</label>
+                </div>
+            </div>
+            <div class="modal-buttons">
+                <button class="btn-save-settings" onclick="saveSettings()">Save</button>
+                <button class="btn-cancel-settings" onclick="closeSettingsModal()">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- History Modal -->
+    <div id="historyModal" class="modal-overlay">
+        <div class="modal-content">
+            <h2>History</h2>
+            <div class="select-all-history">
+                <input type="checkbox" id="selectAllHistory" onchange="toggleSelectAllHistory()">
+                <label for="selectAllHistory">Select All</label>
+            </div>
+            <div class="history-content">
+                <ul id="historyList" class="history-list">
+                    <li class="history-empty">Loading history...</li>
+                </ul>
+            </div>
+            <div class="history-actions">
+                <button class="delete-selected-btn" onclick="deleteSelectedHistory()">Delete Selected</button>
+                <button class="download-csv-btn" onclick="downloadHistoryCSV()">Download CSV</button>
+                <button class="clear-history-btn" onclick="clearHistory()">Clear All</button>
+            </div>
+            <div class="modal-buttons">
+                <button class="btn-cancel-settings" onclick="closeHistoryModal()">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Google Apps Script web app URL
+        const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbx71d5kPpft8HhkACzoo3Dsj3C7sz-aWu6GLhgWC4XsIIU7cHitITJ5us-2a2hv2Mpy/exec';
+
+        // Local storage queue for offline entries
+        let pendingEntries = [];
+        let isSyncing = false;
+        let athleteNames = [];
+        let currentMode = 'start'; // 'start' or 'finish'
+
+        // Storage key for history
+        const HISTORY_KEY = 'headraceHistory';
+        const MAX_HISTORY_DAYS = 10;
+
+        // Save to history
+        function saveToHistory(name, mode) {
+            const now = new Date();
+            const dateStr = now.toLocaleDateString('en-GB'); // DD/MM/YYYY format
+            const timeStr = now.toLocaleTimeString('en-GB'); // HH:MM:SS format
+            const modeText = mode === 'start' ? 'Start Time' : 'Finish Time';
+            
+            const historyEntry = {
+                name: name,
+                date: dateStr,
+                time: timeStr,
+                mode: modeText,
+                timestamp: now.getTime() // For sorting and purging
+            };
+            
+            // Get existing history
+            let history = getHistory();
+            
+            // Add new entry
+            history.unshift(historyEntry); // Add to beginning
+            
+            // Purge old entries (older than 10 days)
+            const tenDaysAgo = Date.now() - (MAX_HISTORY_DAYS * 24 * 60 * 60 * 1000);
+            history = history.filter(entry => entry.timestamp > tenDaysAgo);
+            
+            // Save back to localStorage
+            localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+        }
+
+        // Get history from localStorage
+        function getHistory() {
+            const stored = localStorage.getItem(HISTORY_KEY);
+            if (stored) {
+                try {
+                    return JSON.parse(stored);
+                } catch (e) {
+                    return [];
+                }
+            }
+            return [];
+        }
+
+        // Open history modal
+        function openHistoryModal() {
+            document.getElementById('historyModal').style.display = 'block';
+            displayHistory();
+        }
+
+        // Close history modal
+        function closeHistoryModal() {
+            document.getElementById('historyModal').style.display = 'none';
+        }
+
+        // Display history in the modal
+        function displayHistory() {
+            const history = getHistory();
+            const historyList = document.getElementById('historyList');
+            const selectAllCheckbox = document.getElementById('selectAllHistory');
+            selectAllCheckbox.checked = false;
+            
+            if (history.length === 0) {
+                historyList.innerHTML = '<li class="history-empty">No history available</li>';
+                return;
+            }
+            
+            historyList.innerHTML = '';
+            history.forEach((entry, index) => {
+                const li = document.createElement('li');
+                li.className = 'history-item';
+                
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.className = 'history-checkbox';
+                checkbox.dataset.index = index;
+                
+                const textSpan = document.createElement('span');
+                textSpan.className = 'history-item-text';
+                textSpan.textContent = `${entry.name}, ${entry.date} ${entry.time}, ${entry.mode}`;
+                
+                li.appendChild(checkbox);
+                li.appendChild(textSpan);
+                historyList.appendChild(li);
+            });
+        }
+
+        // Toggle select all checkboxes
+        function toggleSelectAllHistory() {
+            const selectAll = document.getElementById('selectAllHistory');
+            const checkboxes = document.querySelectorAll('.history-checkbox');
+            checkboxes.forEach(cb => cb.checked = selectAll.checked);
+        }
+
+        // Delete selected history items
+        function deleteSelectedHistory() {
+            const checkboxes = document.querySelectorAll('.history-checkbox:checked');
+            
+            if (checkboxes.length === 0) {
+                alert('Please select at least one item to delete');
+                return;
+            }
+            
+            if (!confirm(`Are you sure you want to delete ${checkboxes.length} selected item(s)?`)) {
+                return;
+            }
+            
+            let history = getHistory();
+            
+            // Get indices to delete (in reverse order to avoid index shifting)
+            const indicesToDelete = Array.from(checkboxes)
+                .map(cb => parseInt(cb.dataset.index))
+                .sort((a, b) => b - a);
+            
+            // Delete from history
+            indicesToDelete.forEach(index => {
+                history.splice(index, 1);
+            });
+            
+            // Save back to localStorage
+            localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+            
+            // Refresh display
+            displayHistory();
+            showStatus(`${checkboxes.length} item(s) deleted`, true);
+        }
+
+        // Download history as CSV
+        function downloadHistoryCSV() {
+            const history = getHistory();
+            
+            if (history.length === 0) {
+                alert('No history to download');
+                return;
+            }
+            
+            // Create CSV content
+            let csvContent = 'Name,Date,Time,Mode\n';
+            history.forEach(entry => {
+                csvContent += `"${entry.name}","${entry.date}","${entry.time}","${entry.mode}"\n`;
+            });
+            
+            // Create blob and download
+            const blob = new Blob([csvContent], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `headrace_history_${new Date().toISOString().split('T')[0]}.csv`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+            
+            showStatus('History downloaded successfully', true);
+        }
+
+        // Clear all history
+        function clearHistory() {
+            if (confirm('Are you sure you want to delete all history records? This action cannot be undone.')) {
+                localStorage.removeItem(HISTORY_KEY);
+                displayHistory();
+                showStatus('History cleared successfully', true);
+            }
+        }
+
+        // Load mode from localStorage
+        function loadMode() {
+            const savedMode = localStorage.getItem('recordingMode');
+            if (savedMode) {
+                currentMode = savedMode;
+                applyModeStyles();
+            }
+        }
+
+        // Apply visual styles based on mode
+        function applyModeStyles() {
+            const h1 = document.querySelector('h1');
+            if (currentMode === 'finish') {
+                document.body.classList.add('finish-mode');
+                h1.textContent = 'Head Race Tracker (Finish Mode)';
+            } else {
+                document.body.classList.remove('finish-mode');
+                h1.textContent = 'Head Race Tracker (Start Mode)';
+            }
+        }
+
+        // Open settings modal
+        function openSettingsModal() {
+            document.getElementById('settingsModal').style.display = 'block';
+            // Set radio button based on current mode
+            if (currentMode === 'start') {
+                document.getElementById('startMode').checked = true;
+            } else {
+                document.getElementById('finishMode').checked = true;
+            }
+        }
+
+        // Close settings modal
+        function closeSettingsModal() {
+            document.getElementById('settingsModal').style.display = 'none';
+        }
+
+        // Save settings
+        function saveSettings() {
+            const selectedMode = document.querySelector('input[name="mode"]:checked').value;
+            currentMode = selectedMode;
+            localStorage.setItem('recordingMode', currentMode);
+            applyModeStyles();
+            closeSettingsModal();
+            
+            // Show confirmation
+            showStatus(`Mode changed to ${currentMode.toUpperCase()}`, true);
+        }
+
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const settingsModal = document.getElementById('settingsModal');
+            const historyModal = document.getElementById('historyModal');
+            if (event.target === settingsModal) {
+                closeSettingsModal();
+            }
+            if (event.target === historyModal) {
+                closeHistoryModal();
+            }
+        }
+
+        // Update clock every second
+        function updateClock() {
+            const now = new Date();
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            const seconds = String(now.getSeconds()).padStart(2, '0');
+            
+            document.getElementById('clock').textContent = `${hours}:${minutes}:${seconds}`;
+        }
+
+        // Start the clock
+        updateClock(); // Update immediately
+        setInterval(updateClock, 1000); // Update every second
+
+        // Show confirmation message
+        function showConfirmation(message) {
+            const confirmDiv = document.getElementById('confirmation');
+            confirmDiv.textContent = message;
+            confirmDiv.style.visibility = 'visible';
+            // Don't hide it automatically - will be replaced by next button press
+        }
+
+        // Load athlete names from Google Sheet
+        async function loadAthleteNames() {
+            try {
+                const response = await fetch(`${WEB_APP_URL}?action=getNames`);
+                const data = await response.json();
+                
+                if (data.names && data.names.length > 0) {
+                    athleteNames = data.names;
+                    createButtons(data.names);
+                } else {
+                    document.getElementById('buttonContainer').innerHTML = '<p style="color: #dc3545;">No names found in Athlete sheet</p>';
+                }
+            } catch (error) {
+                console.error('Error loading names:', error);
+                // Fallback to default names if can't load
+                athleteNames = ['Lou', 'Pete', 'Les'];
+                createButtons(athleteNames);
+            }
+        }
+
+        // Create buttons dynamically
+        function createButtons(names) {
+            const container = document.getElementById('buttonContainer');
+            container.innerHTML = ''; // Clear loading message
+            
+            names.forEach(name => {
+                if (name && name.trim()) { // Only create button if name is not empty
+                    const button = document.createElement('button');
+                    button.textContent = name;
+                    button.setAttribute('data-name', name);
+                    button.onclick = () => recordFinish(button, name);
+                    container.appendChild(button);
+                }
+            });
+        }
+
+        // Record a finish time
+        function recordFinish(button, name) {
+            // Get current time in HH:MM:SS format
+            const now = new Date();
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            const seconds = String(now.getSeconds()).padStart(2, '0');
+            const timestamp = `${hours}:${minutes}:${seconds}`;
+
+            // Save to history
+            saveToHistory(name, currentMode);
+
+            // Add to local queue immediately with mode information
+            const entry = { name, timestamp, mode: currentMode };
+            pendingEntries.push(entry);
+            savePendingEntries();
+
+            // Show confirmation at top
+            const modeText = currentMode === 'start' ? 'Start' : 'Finish';
+            showConfirmation(`✓ ${name} ${modeText.toLowerCase()} at ${timestamp}`);
+
+            // Change button color to orange
+            button.classList.add('recorded');
+        }
+
+        // Load pending entries from localStorage on page load
+        function loadPendingEntries() {
+            const stored = localStorage.getItem('headraceQueue');
+            if (stored) {
+                try {
+                    pendingEntries = JSON.parse(stored);
+                } catch (e) {
+                    pendingEntries = [];
+                }
+            }
+            updatePendingCount();
+        }
+
+        // Save pending entries to localStorage
+        function savePendingEntries() {
+            localStorage.setItem('headraceQueue', JSON.stringify(pendingEntries));
+            updatePendingCount();
+        }
+
+        // Update the display of pending entries
+        function updatePendingCount() {
+            const count = pendingEntries.length;
+            const statusDiv = document.getElementById('status');
+            if (count > 0 && !statusDiv.classList.contains('success') && !statusDiv.classList.contains('error')) {
+                statusDiv.textContent = `📝 ${count} entry(ies) pending sync...`;
+                statusDiv.className = 'status';
+                statusDiv.style.display = 'block';
+                statusDiv.style.backgroundColor = '#e7f3ff';
+                statusDiv.style.color = '#004085';
+            }
+        }
+
+        function showStatus(message, isSuccess) {
+            const statusDiv = document.getElementById('status');
+            statusDiv.textContent = message;
+            statusDiv.className = 'status ' + (isSuccess ? 'success' : 'error');
+            
+            // Hide the message after 3 seconds
+            setTimeout(() => {
+                statusDiv.style.display = 'none';
+                updatePendingCount(); // Show pending count again if any
+            }, 3000);
+        }
+
+        // Sync entries to Google Sheets in the background
+        async function syncToGoogleSheets() {
+            // Don't sync if already syncing or no entries
+            if (isSyncing || pendingEntries.length === 0) {
+                return;
+            }
+
+            isSyncing = true;
+            const entry = pendingEntries[0]; // Get first entry
+
+            try {
+                // Send data to Google Apps Script
+                const response = await fetch(WEB_APP_URL, {
+                    method: 'POST',
+                    mode: 'no-cors', // Required for Google Apps Script
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        name: entry.name,
+                        timestamp: entry.timestamp,
+                        mode: entry.mode || 'start' // Default to start if not specified
+                    })
+                });
+
+                // If successful, remove from queue
+                pendingEntries.shift();
+                savePendingEntries();
+
+            } catch (error) {
+                console.error('Sync error:', error);
+                // Keep entry in queue to retry later
+            } finally {
+                isSyncing = false;
+            }
+        }
+
+        // Start background sync every 3 seconds
+        setInterval(syncToGoogleSheets, 3000);
+
+        // Load mode from localStorage
+        loadMode();
+
+        // Load pending entries when page loads
+        loadPendingEntries();
+
+        // Load athlete names when page loads
+        loadAthleteNames();
+
+        // Start syncing immediately if there are pending entries
+        if (pendingEntries.length > 0) {
+            syncToGoogleSheets();
+        }
+    </script>
+</body>
+</html>
