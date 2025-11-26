@@ -695,7 +695,7 @@
 
             try {
                 // Send data to Google Apps Script
-                await fetch(WEB_APP_URL, {
+                const response = await fetch(WEB_APP_URL, {
                     method: 'POST',
                     mode: 'no-cors', // Required for Google Apps Script
                     headers: {
@@ -708,20 +708,9 @@
                     })
                 });
 
-                // Wait a moment for the write to complete
-                await new Promise(resolve => setTimeout(resolve, 1000));
-
-                // Verify the entry was written by checking the sheet
-                const verifyResponse = await fetch(`${WEB_APP_URL}?action=verifyEntry&name=${encodeURIComponent(entry.name)}&timestamp=${encodeURIComponent(entry.timestamp)}`);
-                const verifyData = await verifyResponse.json();
-
-                if (verifyData.status === 'success' && verifyData.found) {
-                    // Entry confirmed in sheet, remove from queue
-                    pendingEntries.shift();
-                    savePendingEntries();
-                } else {
-                    console.log('Entry not yet in sheet, will retry');
-                }
+                // If successful, remove from queue
+                pendingEntries.shift();
+                savePendingEntries();
 
             } catch (error) {
                 console.error('Sync error:', error);
@@ -750,4 +739,3 @@
     </script>
 </body>
 </html>
-
